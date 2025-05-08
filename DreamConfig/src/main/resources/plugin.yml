@@ -1,0 +1,5 @@
+name: DreamConfig
+version: 1.0.0-SNAPSHOT
+main: com.dreamfirestudios.dreamConfig.DreamConfig
+api-version: 1.21
+depend: [DreamCore]

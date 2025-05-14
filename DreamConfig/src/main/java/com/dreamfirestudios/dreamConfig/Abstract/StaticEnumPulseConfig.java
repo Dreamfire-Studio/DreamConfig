@@ -1,12 +1,8 @@
 package com.dreamfirestudios.dreamConfig.Abstract;
 
-import com.dreamfirestudios.dreamConfig.Interface.DontDefault;
-import com.dreamfirestudios.dreamConfig.Interface.StorageComment;
-import com.dreamfirestudios.dreamConfig.SaveableObjects.SaveableHashmap;
 import com.dreamfirestudios.dreamConfig.SaveableObjects.SaveableLinkedHashMap;
-import org.bukkit.inventory.ItemStack;
 
-public abstract class StaticEnumPulseConfig<T extends StaticEnumPulseConfig<T, k, v>, k extends Enum<k>, v> extends StaticPulseConfig<T>{
+public abstract class StaticEnumPulseConfig<T extends StaticEnumPulseConfig<T, k, v>, k extends Enum<k>, v> extends StaticPulseConfig<T> {
     protected abstract Class<k> getKeyClass();
     protected abstract Class<v> getValueClass();
     protected abstract v getDefaultValueFor(k key);
@@ -42,7 +38,7 @@ public abstract class StaticEnumPulseConfig<T extends StaticEnumPulseConfig<T, k
                 saveableHashmap.getHashMap().put(enumValue, getDefaultValueFor(enumValue));
             }
         }
-        SaveConfig(iPulseConfig -> {}, Throwable::printStackTrace);
+        SaveDreamConfig(mainClass(), iPulseConfig -> {});
     }
 
     @Override

@@ -3,10 +3,7 @@ package com.dreamfirestudios.dreamConfig.Serializer;
 import com.dreamfirestudios.dreamConfig.Abstract.StaticEnumPulseConfig;
 import com.dreamfirestudios.dreamConfig.Interface.DontDefault;
 import com.dreamfirestudios.dreamConfig.Interface.DontSave;
-import com.dreamfirestudios.dreamConfig.SaveableObjects.SaveableArrayList;
-import com.dreamfirestudios.dreamConfig.SaveableObjects.SaveableHashmap;
-import com.dreamfirestudios.dreamConfig.SaveableObjects.SaveableLinkedHashMap;
-import com.dreamfire.dreamfirecore.DreamfireVariable.DreamfireVariable;
+import com.dreamfirestudios.dreamCore.DreamfireVariable.DreamfireVariable;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
@@ -21,19 +18,15 @@ public class SerializerHelpers {
 
     public static LinkedHashMap<Field, Object> ReturnAllFields(Class<?> parentClass, Object object) throws IllegalAccessException {
         var data = new LinkedHashMap<Field, Object>();
-        for (var field : parentClass.getDeclaredFields()) {
-            if (field.isAnnotationPresent(DontSave.class)) continue;
-            if (Modifier.isStatic(field.getModifiers())) continue;
-            if (Modifier.isPrivate(field.getModifiers())) continue;
-            if (Modifier.isProtected(field.getModifiers())) continue;
+        for(var field : parentClass.getDeclaredFields()){
+            if(field.isAnnotationPresent(DontSave.class)) continue;
+            var modifiers = field.getModifiers();
+            if(Modifier.isStatic(modifiers) || Modifier.isPrivate(modifiers) || Modifier.isProtected(modifiers)) continue;
             field.setAccessible(true);
             var storedData = field.get(object);
-            if (storedData == null && !field.isAnnotationPresent(DontDefault.class)) {
+            if(storedData == null && !field.isAnnotationPresent(DontDefault.class)){
                 var variableTest = DreamfireVariable.returnTestFromType(field.getType());
-                if (field.getType() == SaveableArrayList.class) storedData = new SaveableArrayList<>(Object.class);
-                else if (field.getType() == SaveableHashmap.class) storedData = new SaveableHashmap<>(Object.class, Object.class);
-                else if (field.getType() == SaveableLinkedHashMap.class) storedData = new SaveableLinkedHashMap<>(Object.class, Object.class);
-                else if (field.getType() == Date.class) storedData = new Date();
+                if (field.getType() == Date.class) storedData = new Date();
                 else if (variableTest != null) storedData = variableTest.ReturnDefaultValue();
                 else storedData = CreateClassInstanceBlank(field.getType());
             }
@@ -43,14 +36,16 @@ public class SerializerHelpers {
             var superClass = parentClass.getSuperclass();
             if (superClass != null && StaticEnumPulseConfig.class.isAssignableFrom(superClass)) {
                 var d = ReturnAllFields(superClass, object);
-                for (var key : d.keySet()) {
-                    data.put(key, d.get(key));
-                }
+                for (var key : d.keySet()) data.put(key, d.get(key));
             }
         }
         return data;
     }
 
+    public static Object CreateClassInstanceBlank(Class<?> instanceClass){
+        try{return instanceClass.getConstructor().newInstance();}
+        catch (InvocationTargetException | InstantiationException | IllegalAccessException | NoSuchMethodException ignored) {return null;}
+    }
 
     public static Object CreateInstanceWithID(String fileName, Class<?> instanceClass){
         try{
@@ -61,14 +56,6 @@ public class SerializerHelpers {
             catch (InstantiationException | IllegalAccessException | InvocationTargetException | NoSuchMethodException e) {
                 return null;
             }
-        }
-    }
-
-    public static Object CreateClassInstanceBlank(Class<?> instanceClass){
-        try{
-            return instanceClass.getConstructor().newInstance();
-        }catch (InvocationTargetException | InstantiationException | IllegalAccessException | NoSuchMethodException ignored) {
-            return null;
         }
     }
 }

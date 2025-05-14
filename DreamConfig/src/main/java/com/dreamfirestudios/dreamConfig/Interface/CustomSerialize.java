@@ -5,5 +5,6 @@ import java.lang.annotation.RetentionPolicy;
 
 @Retention(RetentionPolicy.RUNTIME)
 public @interface CustomSerialize {
-    Class<? extends SerializationStrategy<?>> strategy();
+    Class<? extends SerializationStrategy<?>> serializationStrategy();
+    Class<? extends DeserializationStrategy<?>> deserializationStrategy();
 }

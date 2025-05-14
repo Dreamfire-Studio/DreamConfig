@@ -1,7 +1,6 @@
 package com.dreamfirestudios.dreamConfig.SaveableObjects;
 
-import com.dreamfirestudios.dreamConfig.DeSerializer.ConfigDeSerializer;
-import com.dreamfirestudios.dreamConfig.DeSerializer.MongoDeSerializer;
+import com.dreamfirestudios.dreamConfig.DeSerializer.DreamConfigDeSerializer;
 import com.dreamfirestudios.dreamConfig.Enum.StorageType;
 import com.dreamfirestudios.dreamConfig.Interface.IPulseClass;
 import com.dreamfirestudios.dreamConfig.Serializer.SerializerHelpers;
@@ -9,6 +8,9 @@ import lombok.Getter;
 import org.bson.Document;
 
 import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.function.Consumer;
+import java.util.function.Function;
 
 public class SaveableHashmap<K, V> {
     @Getter
@@ -19,6 +21,12 @@ public class SaveableHashmap<K, V> {
     public SaveableHashmap(Class<?> keyType, Class<?> dataType){
         this.keyType = keyType;
         this.dataType = dataType;
+    }
+
+    public LinkedHashMap<Object, Object> Serialize(Function<Object, Object> saveConfigSingle){
+        var result  = new LinkedHashMap<Object, Object>();
+        for(var key : hashMap.keySet()) result.put(saveConfigSingle.apply(key), saveConfigSingle.apply(hashMap.get(key)));
+        return result ;
     }
 
     public void DeSerialiseData(StorageType saveableType, HashMap<Object, Object> configData) throws Exception {
@@ -42,13 +50,11 @@ public class SaveableHashmap<K, V> {
             IPulseClass pulseClassInstance = (IPulseClass) SerializerHelpers.CreateClassInstanceBlank(targetType);
             pulseClassInstance.BeforeLoadConfig();
             Object deserialized = null;
-            if(storageType == StorageType.CONFIG) deserialized = ConfigDeSerializer.ReturnClassFields((HashMap<Object, Object>) source, pulseClassInstance.getClass(), pulseClassInstance);
-            if (storageType == StorageType.MONGO) deserialized = MongoDeSerializer.ReturnClassFieldsMap((Document) source, pulseClassInstance.getClass(), pulseClassInstance);
+            if(storageType == StorageType.CONFIG) deserialized = DreamConfigDeSerializer.ReturnAllClassFields((HashMap<Object, Object>) source, pulseClassInstance.getClass(), pulseClassInstance);
             pulseClassInstance.AfterLoadConfig();
             return (K) deserialized;
         }else{
-            if(storageType == StorageType.CONFIG) return (K) ConfigDeSerializer.LoadConfigSingle(targetType, source, source);
-            else if (storageType == StorageType.MONGO) return (K) MongoDeSerializer.LoadMongoSingle(targetType, source, source);
+            if(storageType == StorageType.CONFIG) return (K) DreamConfigDeSerializer.LoadConfigSingle(targetType, source, source);
         }
         throw new IllegalArgumentException("Unsupported key type for deserialization.");
     }
@@ -58,15 +64,12 @@ public class SaveableHashmap<K, V> {
             IPulseClass pulseClassInstance = (IPulseClass) SerializerHelpers.CreateClassInstanceBlank(targetType);
             pulseClassInstance.BeforeLoadConfig();
             Object deserialized = null;
-            if(storageType == StorageType.CONFIG) deserialized = ConfigDeSerializer.ReturnClassFields((HashMap<Object, Object>) source, pulseClassInstance.getClass(), pulseClassInstance);
-            else if (storageType == StorageType.MONGO) deserialized = MongoDeSerializer.ReturnClassFieldsMap((Document) source, pulseClassInstance.getClass(), pulseClassInstance);
+            if(storageType == StorageType.CONFIG) deserialized = DreamConfigDeSerializer.ReturnAllClassFields((HashMap<Object, Object>) source, pulseClassInstance.getClass(), pulseClassInstance);
             pulseClassInstance.AfterLoadConfig();
             return (V) deserialized;
         }else{
-            if(storageType == StorageType.CONFIG) return (V) ConfigDeSerializer.LoadConfigSingle(dataType, source, source);
-            else if (storageType == StorageType.MONGO) return (V) MongoDeSerializer.LoadMongoSingle(dataType, source, source);
+            if(storageType == StorageType.CONFIG) return (V) DreamConfigDeSerializer.LoadConfigSingle(dataType, source, source);
         }
         throw new IllegalArgumentException("Unsupported value type for deserialization.");
     }
-
 }

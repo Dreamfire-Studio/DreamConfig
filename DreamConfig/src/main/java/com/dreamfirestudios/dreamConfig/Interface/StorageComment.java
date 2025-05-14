@@ -10,4 +10,3 @@ import java.lang.annotation.Target;
 public @interface StorageComment {
     public String value();
 }
-

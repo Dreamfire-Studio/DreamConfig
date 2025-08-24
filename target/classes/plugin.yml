@@ -1,0 +1,15 @@
+name: DreamConfig
+version: v1.0.0-SNAPSHOT
+main: com.dreamfirestudios.dreamconfig.DreamConfig
+api-version: 1.28
+depend: [ProtocolLib, LuckPerms, PlaceholderAPI, DreamCore]
+commands:
+  cfg-demo:
+    description: DreamConfig demo command
+    usage: /cfg-demo <static|enum|dynamic|bulk> [id]
+    permission: dreamconfig.demo
+
+permissions:
+  dreamconfig.demo:
+    default: op
+

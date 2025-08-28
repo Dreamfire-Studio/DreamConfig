@@ -1,62 +1,70 @@
-/*
- * MIT License
- *
- * Copyright (c) 2025 Dreamfire Studio
- *
- * Permission is hereby granted, free of charge, to any person obtaining a copy
- * of this software and associated documentation files (the "Software"), to deal
- * in the Software without restriction, including without limitation the rights
- * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
- * copies of the Software, and to permit persons to whom the Software is
- * furnished to do so, subject to the following conditions:
- *
- * The above copyright notice and this permission notice shall be included in all
- * copies or substantial portions of the Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
- * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
- * SOFTWARE.
- */
 package com.dreamfirestudios.dreamconfig.Versioning;
 
-import com.dreamfirestudios.dreamconfig.Model.Interfaces.IDreamConfig;
+import com.dreamfirestudios.dreamconfig.Interface.ConfigMigrator;
 
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
-/// <summary>
-/// Registry of migrators keyed by config class.
-/// </summary>
-/// <remarks>
-/// Migrators are stored per config type and ordered ascending by <see cref="ConfigMigrator.fromVersion"/>.
-/// </remarks>
-/// <example>
-/// <code>
-/// MigratorRegistry.register(MyCfg.class, new V1toV2());
-/// List&lt;ConfigMigrator&lt;MyCfg&gt;&gt; chain = MigratorRegistry.get(MyCfg.class);
-/// </code>
-/// </example>
+/**
+ * <summary>
+ * Registry and executor for config migrators. Allows registering multiple
+ * incremental steps and applying them sequentially starting from a given version.
+ * </summary>
+ */
 public final class MigratorRegistry {
-    private static final Map<Class<? extends IDreamConfig>, List<ConfigMigrator<?>>> REGISTRY = new ConcurrentHashMap<>();
-    private MigratorRegistry() {}
+    private static final Map<Class<?>, List<ConfigMigrator<?>>> REGISTRY = new ConcurrentHashMap<>();
 
-    /// <summary>Register a migrator for a config class.</summary>
-    /// <param name="cfgClass">Config class key.</param>
-    /// <param name="migrator">Migrator instance.</param>
-    public static <T extends IDreamConfig> void register(Class<T> cfgClass, ConfigMigrator<T> migrator) {
-        REGISTRY.computeIfAbsent(cfgClass, k -> new ArrayList<>()).add(migrator);
-        REGISTRY.get(cfgClass).sort(Comparator.comparingInt(ConfigMigrator::fromVersion));
+    private MigratorRegistry() { }
+
+    /**
+     * <summary>Register a migrator for a config class.</summary>
+     */
+    public static <T> void register(Class<T> configClass, ConfigMigrator<T> migrator) {
+        REGISTRY.computeIfAbsent(configClass, k -> new ArrayList<>()).add(migrator);
+        // Keep steps ordered (by fromVersion then toVersion)
+        REGISTRY.get(configClass).sort(Comparator
+                .comparingInt((ConfigMigrator<?> m) -> m.fromVersion())
+                .thenComparingInt(ConfigMigrator::toVersion));
     }
 
-    /// <summary>Get the ordered migrator list for a config class.</summary>
-    /// <param name="cfgClass">Config class key.</param>
-    /// <returns>Ordered list of migrators (possibly empty).</returns>
+    /**
+     * <summary>Get a copy of the registered migrators for a class, ordered.</summary>
+     */
     @SuppressWarnings("unchecked")
-    public static <T extends IDreamConfig> List<ConfigMigrator<T>> get(Class<T> cfgClass) {
-        return (List<ConfigMigrator<T>>) (List<?>) REGISTRY.getOrDefault(cfgClass, List.of());
+    public static <T> List<ConfigMigrator<T>> get(Class<T> configClass) {
+        var list = REGISTRY.getOrDefault(configClass, List.of());
+        return (List<ConfigMigrator<T>>) (List<?>) new ArrayList<>(list);
+    }
+
+    /**
+     * <summary>
+     * Apply all available migrators in order, starting at <paramref name="currentVersion"/>.
+     * Only runs steps whose {@code fromVersion} matches the current version as it progresses.
+     * </summary>
+     * <param name="config">Config to mutate in place.</param>
+     * <param name="configClass">Config class key for registry lookup.</param>
+     * <param name="currentVersion">Starting version (read from file metadata, for example).</param>
+     * <returns>The final version after applying zero or more migrations.</returns>
+     */
+    @SuppressWarnings("unchecked")
+    public static <T> int applyAll(T config, Class<T> configClass, int currentVersion) {
+        List<ConfigMigrator<?>> steps = REGISTRY.getOrDefault(configClass, List.of());
+        if (steps.isEmpty()) return currentVersion;
+
+        int v = currentVersion;
+        boolean progressed;
+        do {
+            progressed = false;
+            for (ConfigMigrator<?> raw : steps) {
+                ConfigMigrator<T> step = (ConfigMigrator<T>) raw;
+                if (step.fromVersion() == v) {
+                    step.migrate(config);
+                    v = step.toVersion();
+                    progressed = true;
+                }
+            }
+        } while (progressed);
+
+        return v;
     }
 }

@@ -1,14 +1,17 @@
 name: DreamConfig
-version: v1.0.0-SNAPSHOT
+version: 1.0.1-SNAPSHOT
 main: com.dreamfirestudios.dreamconfig.DreamConfig
-api-version: 1.28
+api-version: 1.21
 depend: [ProtocolLib, LuckPerms, PlaceholderAPI, DreamCore]
+libraries:
+  - org.mongodb:mongodb-driver-sync:4.10.0
+  - org.mongodb:bson:4.10.0
+  - org.mongodb:mongodb-driver-core:4.10.0
 commands:
   cfg-demo:
     description: DreamConfig demo command
     usage: /cfg-demo <static|enum|dynamic|bulk> [id]
     permission: dreamconfig.demo
-
 permissions:
   dreamconfig.demo:
     default: op

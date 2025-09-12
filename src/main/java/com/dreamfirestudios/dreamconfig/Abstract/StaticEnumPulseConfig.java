@@ -6,6 +6,7 @@ public abstract class StaticEnumPulseConfig<T extends StaticEnumPulseConfig<T, k
     protected abstract Class<k> getKeyClass();
     protected abstract Class<v> getValueClass();
     protected abstract v getDefaultValueFor(k key);
+    @Override public boolean useSubFolder() { return false; }
 
     public SaveableLinkedHashMap<k, v> saveableHashmap = new SaveableLinkedHashMap<>(getKeyClass(), getValueClass());
 

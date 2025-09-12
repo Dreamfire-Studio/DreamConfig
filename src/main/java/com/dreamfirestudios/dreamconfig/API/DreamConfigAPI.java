@@ -144,7 +144,7 @@ public class DreamConfigAPI {
 
     private static String GetDreamConfigPath(IDreamConfig iDreamConfig){
         if(iDreamConfig.getClass().isAnnotationPresent(StoragePath.class)) return iDreamConfig.getClass().getAnnotation(StoragePath.class).value();
-        return iDreamConfig.useSubFolder() ? iDreamConfig.documentID() : "";
+        return iDreamConfig.useSubFolder() ? iDreamConfig.getClass().getSimpleName() : "";
     }
 
     private static String ConsoleOutputSingle(Object storedData, int indent) throws Exception {

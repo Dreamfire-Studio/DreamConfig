@@ -27,39 +27,27 @@ public class SerializerHelpers {
     /// <returns>Map of Field -> current/default value (non-null)</returns>
     public static LinkedHashMap<Field, Object> ReturnAllFields(Class<?> parentClass, Object object) throws IllegalAccessException {
         final LinkedHashMap<Field, Object> data = new LinkedHashMap<>();
-
-        for (Field field : parentClass.getDeclaredFields()) {
-            // skip explicit opt-outs and non-instance stuff
-            if (field.isAnnotationPresent(DontSave.class)) continue;
-            int mod = field.getModifiers();
-            if (Modifier.isStatic(mod) || Modifier.isTransient(mod) || field.isSynthetic()) continue;
-
-            // allow private/protected
-            if (!field.canAccess(object)) field.setAccessible(true);
-
-            Object stored = field.get(object);
-
-            // default missing values unless @DontDefault
-            if (stored == null && !field.isAnnotationPresent(DontDefault.class)) {
-                var variableTest = DreamVariableTestAPI.returnTestFromType(field.getType());
-                if (field.getType() == Date.class) {
-                    stored = new Date();
-                } else if (variableTest != null) {
-                    stored = variableTest.ReturnDefaultValue();
-                } else {
-                    stored = CreateClassInstanceBlank(field.getType());
+        Class<?> current = parentClass;
+        while (current != null && current != Object.class) {
+            for (Field field : current.getDeclaredFields()) {
+                if (field.isAnnotationPresent(DontSave.class)) continue;
+                int mod = field.getModifiers();
+                if (Modifier.isStatic(mod) || Modifier.isTransient(mod) || field.isSynthetic()) continue;
+                if (!field.canAccess(object)) field.setAccessible(true);
+                Object stored = field.get(object);
+                if (stored == null && !field.isAnnotationPresent(DontDefault.class)) {
+                    var variableTest = DreamVariableTestAPI.returnTestFromType(field.getType());
+                    if (field.getType() == Date.class) {
+                        stored = new Date();
+                    } else if (variableTest != null) {
+                        stored = variableTest.ReturnDefaultValue();
+                    } else {
+                        stored = CreateClassInstanceBlank(field.getType());
+                    }
                 }
+                if (stored != null) data.put(field, stored);
             }
-            if (stored != null) data.put(field, stored);
-        }
-
-        // Preserve existing behaviour for StaticEnumPulseConfig (pull fields from super chain once)
-        if (object instanceof StaticEnumPulseConfig) {
-            Class<?> superClass = parentClass.getSuperclass();
-            if (superClass != null && StaticEnumPulseConfig.class.isAssignableFrom(superClass)) {
-                var inherited = ReturnAllFields(superClass, object);
-                for (var e : inherited.entrySet()) data.put(e.getKey(), e.getValue());
-            }
+            current = current.getSuperclass();
         }
         return data;
     }

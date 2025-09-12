@@ -18,6 +18,8 @@ import java.util.function.Consumer;
  * </remarks>
  */
 public abstract class StaticPulseConfig<T extends StaticPulseConfig<T>> implements IDreamConfig {
+    @Override public boolean useSubFolder() { return false; }
+
     @SuppressWarnings("unchecked")
     public static <T extends StaticPulseConfig<T>> void ReturnStaticAsync(JavaPlugin javaPlugin, Class<T> clazz, Consumer<T> onSuccess) {
         CompletableFuture.runAsync(() -> {
